@@ -1,0 +1,44 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# =========================
+# Environments / secrets
+# =========================
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# =========================
+# Streamlit
+# =========================
+.streamlit/secrets.toml
+
+# =========================
+# Temp / Runtime
+# =========================
+.temp_repo/
+
+# =========================
+# Vector DB / Chroma
+# =========================
+chroma_db/
+data/chroma/
