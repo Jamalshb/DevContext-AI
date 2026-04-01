@@ -1,47 +1,48 @@
-# DevContext_AI
+# DevContext-AI 🚀
 
-Streamlit app + ingestion pipeline that clones a GitHub repo, indexes supported files into a persisted Chroma vector DB, and answers questions grounded in the retrieved code context.
+DevContext-AI is a local AI-powered tool that lets you **ask questions about any GitHub repository** using vector search and LLMs — fully running on your machine (no OpenAI required).
 
-## Requirements
+---
+
+## ✨ Features
+
+- 🔍 Clone and analyze any GitHub repository
+- 🧠 Local embeddings using **Ollama**
+- 💬 Conversational Q&A over code
+- 🗄️ Persistent vector database (ChromaDB)
+- ⚡ Streamlit UI for easy interaction
+- 💸 100% free (no API keys required)
+
+---
+
+## 🧠 How it works
+
+1. Clone a GitHub repository
+2. Load and parse supported files
+3. Split code into chunks
+4. Generate embeddings (Ollama)
+5. Store in Chroma vector DB
+6. Ask questions using local LLM
+
+---
+
+## 📁 Supported Files
+
+- `.py`
+- `.js`
+- `.ts`
+- `.md`
+
+---
+
+## ⚙️ Requirements
 
 - Python 3.10+
-- An OpenAI API key
+- Ollama installed
 
-## Setup (Windows PowerShell)
+---
+
+## 📦 Installation
 
 ```bash
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-```
-
-Create a `.env` file (or set an environment variable):
-
-```bash
-copy .env.example .env
-```
-
-Then edit `.env` and set:
-
-- `OPENAI_API_KEY`
-
-## Run the app
-
-```bash
-streamlit run app.py
-```
-
-In the sidebar, paste a GitHub repo URL and click **Process Repo**. The Chroma DB is persisted to `./chroma_db` by default.
-
-## Run ingestion from CLI (optional)
-
-```bash
-python ingestor.py https://github.com/org/repo.git
-```
-
-## Project layout
-
-- `app.py`: Streamlit UI + chat/retrieval chain
-- `ingestor.py`: clone/load/split/embed/persist pipeline
-- `data/chroma/`: reserved location for vector DB storage (optional)
-- `tests/`: test suite (placeholder)
