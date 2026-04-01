@@ -5,18 +5,22 @@ from src.config import OLLAMA_BASE_URL, OLLAMA_CHAT_MODEL, OLLAMA_EMBED_MODEL
 
 
 def build_qa_chain(persist_directory: str):
+    # embeddings
     embeddings = OllamaEmbeddings(
         model=OLLAMA_EMBED_MODEL,
         base_url=OLLAMA_BASE_URL,
     )
 
+    # vector store
     vectorstore = Chroma(
         persist_directory=persist_directory,
         embedding_function=embeddings,
     )
 
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 4})
+    # retriever
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 8})
 
+    # LLM
     llm = ChatOllama(
         model=OLLAMA_CHAT_MODEL,
         base_url=OLLAMA_BASE_URL,
@@ -27,18 +31,31 @@ def build_qa_chain(persist_directory: str):
         question = payload["question"]
         chat_history = payload.get("chat_history", [])
 
+        # retrieve documents
         docs = retriever.invoke(question)
+
+        # 🔥 خلي README أولًا
+        docs = sorted(
+            docs,
+            key=lambda d: "readme" not in d.metadata.get("source", "").lower()
+        )
+
+        # build context
         context = "\n\n".join(doc.page_content for doc in docs)
 
+        # chat history
         history_text = "\n".join(
             [f"User: {q}\nAssistant: {a}" for q, a in chat_history]
         )
 
+        # prompt
         prompt = f"""
-You are a helpful AI assistant for understanding a GitHub repository.
+You are an expert AI assistant that analyzes GitHub repositories.
 
-Use only the provided context to answer.
-If the answer is not in the context, say you do not know.
+IMPORTANT:
+- This project uses Ollama locally (NOT OpenAI)
+- Always explain the project clearly
+- Even if context is partial, try to infer the purpose
 
 Chat history:
 {history_text}
@@ -50,6 +67,7 @@ Question:
 {question}
 """
 
+        # get response
         response = llm.invoke(prompt)
 
         return {
