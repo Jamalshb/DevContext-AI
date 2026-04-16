@@ -50,22 +50,11 @@ def build_qa_chain(persist_directory: str):
         chat_history = payload.get("chat_history", [])
 
         docs = retriever.invoke(question)
-        docs = sorted(
-            docs,
-            key=lambda d: "readme" not in d.metadata.get("source", "").lower()
-        )
 
         context = "\n\n".join(doc.page_content for doc in docs)
-        history_text = "\n".join(
-            [f"User: {q}\nAssistant: {a}" for q, a in chat_history]
-        )
 
         prompt = f"""
 You are an expert AI assistant that analyzes GitHub repositories.
-Always explain the repository clearly and base the answer on the provided context.
-
-Chat history:
-{history_text}
 
 Context:
 {context}
