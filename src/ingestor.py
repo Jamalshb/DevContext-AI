@@ -9,17 +9,24 @@ from git import Repo
 from langchain_community.document_loaders.generic import GenericLoader
 from langchain_community.document_loaders.parsers import LanguageParser
 from langchain_community.vectorstores import Chroma
-from langchain_ollama import OllamaEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from src.config import (
     CHROMA_BASE_DIR,
     CHUNK_OVERLAP,
     CHUNK_SIZE,
+    MODEL_PROVIDER,
     OLLAMA_BASE_URL,
     OLLAMA_EMBED_MODEL,
+    OPENAI_API_KEY,
+    OPENAI_EMBED_MODEL,
     SUPPORTED_EXTENSIONS,
 )
+
+if MODEL_PROVIDER == "openai":
+    from langchain_openai import OpenAIEmbeddings
+else:
+    from langchain_ollama import OllamaEmbeddings
 
 
 DEFAULT_PERSIST_DIRECTORY = CHROMA_BASE_DIR
@@ -110,6 +117,21 @@ def split_documents(
         raise IngestionError(f"Failed while splitting documents: {e}") from e
 
 
+def _build_embeddings():
+    if MODEL_PROVIDER == "openai":
+        if not OPENAI_API_KEY:
+            raise IngestionError("OPENAI_API_KEY is missing.")
+        return OpenAIEmbeddings(
+            model=OPENAI_EMBED_MODEL,
+            api_key=OPENAI_API_KEY,
+        )
+
+    return OllamaEmbeddings(
+        model=OLLAMA_EMBED_MODEL,
+        base_url=OLLAMA_BASE_URL,
+    )
+
+
 def embed_and_persist(
     chunks: Sequence["Document"],
     *,
@@ -119,12 +141,9 @@ def embed_and_persist(
         raise IngestionError("No chunks to embed.")
 
     try:
-        embeddings = OllamaEmbeddings(
-            model=OLLAMA_EMBED_MODEL,
-            base_url=OLLAMA_BASE_URL,
-        )
+        embeddings = _build_embeddings()
     except Exception as e:
-        raise IngestionError(f"Failed to initialize OllamaEmbeddings: {e}") from e
+        raise IngestionError(f"Failed to initialize embeddings: {e}") from e
 
     try:
         vectordb = Chroma.from_documents(
@@ -142,8 +161,6 @@ def embed_and_persist(
 
 def ingest_repo(repo_url: str, config: Optional[IngestConfig] = None) -> str:
     cfg = config or IngestConfig()
-
-    repo_path = None
     tmp_handle: Optional[tempfile.TemporaryDirectory] = None
 
     try:
