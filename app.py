@@ -1,6 +1,5 @@
 import streamlit as st
 
-from src.config import MODEL_PROVIDER
 from src.ingestor import ingest_repo
 from src.qa_chain import build_qa_chain
 from src.utils import extract_repo_name
@@ -9,7 +8,6 @@ from src.utils import extract_repo_name
 st.set_page_config(page_title="DevContext-AI", layout="wide")
 st.title("DevContext-AI")
 st.write("Ask questions about any GitHub repository.")
-st.caption(f"Model provider: {MODEL_PROVIDER}")
 
 if "qa_chain" not in st.session_state:
     st.session_state.qa_chain = None
@@ -52,10 +50,12 @@ if st.button("Ask"):
         st.error("Please enter a question.")
     else:
         try:
-            result = st.session_state.qa_chain({
-                "question": question,
-                "chat_history": st.session_state.chat_history
-            })
+            result = st.session_state.qa_chain(
+                {
+                    "question": question,
+                    "chat_history": st.session_state.chat_history,
+                }
+            )
 
             answer = result["answer"]
             sources = result.get("source_documents", [])

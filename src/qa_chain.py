@@ -1,72 +1,46 @@
+from langchain_community.embeddings import FakeEmbeddings
 from langchain_community.vectorstores import Chroma
-
-from src.config import (
-    MODEL_PROVIDER,
-    OLLAMA_BASE_URL,
-    OLLAMA_CHAT_MODEL,
-    OLLAMA_EMBED_MODEL,
-    OPENAI_API_KEY,
-    OPENAI_CHAT_MODEL,
-    OPENAI_EMBED_MODEL,
-)
-
-if MODEL_PROVIDER == "openai":
-    from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-else:
-    from langchain_ollama import ChatOllama, OllamaEmbeddings
 
 
 def build_qa_chain(persist_directory: str):
-    if MODEL_PROVIDER == "openai":
-        embeddings = OpenAIEmbeddings(
-            model=OPENAI_EMBED_MODEL,
-            api_key=OPENAI_API_KEY,
-        )
-        llm = ChatOpenAI(
-            model=OPENAI_CHAT_MODEL,
-            api_key=OPENAI_API_KEY,
-            temperature=0,
-        )
-    else:
-        embeddings = OllamaEmbeddings(
-            model=OLLAMA_EMBED_MODEL,
-            base_url=OLLAMA_BASE_URL,
-        )
-        llm = ChatOllama(
-            model=OLLAMA_CHAT_MODEL,
-            base_url=OLLAMA_BASE_URL,
-            temperature=0,
-        )
+    embeddings = FakeEmbeddings(size=1536)
 
     vectorstore = Chroma(
         persist_directory=persist_directory,
         embedding_function=embeddings,
     )
 
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 8})
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
 
     def ask_question(payload: dict):
         question = payload["question"]
-        chat_history = payload.get("chat_history", [])
 
         docs = retriever.invoke(question)
 
-        context = "\n\n".join(doc.page_content for doc in docs)
+        docs = sorted(
+            docs,
+            key=lambda d: "readme" not in d.metadata.get("source", "").lower()
+        )
 
-        prompt = f"""
-You are an expert AI assistant that analyzes GitHub repositories.
+        if not docs:
+            return {
+                "answer": "No relevant documents were found in the repository.",
+                "source_documents": [],
+            }
 
-Context:
-{context}
+        context = "\n\n".join(doc.page_content for doc in docs[:3])
 
-Question:
-{question}
-"""
-
-        response = llm.invoke(prompt)
+        answer = (
+            "Demo Mode (Free Version)\n\n"
+            "This deployed version works without paid AI APIs.\n"
+            "It retrieves the most relevant repository content and shows a summary based on it.\n\n"
+            f"Question: {question}\n\n"
+            "Relevant repository content:\n"
+            f"{context[:1200]}"
+        )
 
         return {
-            "answer": response.content,
+            "answer": answer,
             "source_documents": docs,
         }
 

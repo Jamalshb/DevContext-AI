@@ -10,26 +10,15 @@ from langchain_core.documents import Document
 from langchain_community.document_loaders.generic import GenericLoader
 from langchain_community.document_loaders.parsers import LanguageParser
 from langchain_community.vectorstores import Chroma
+from langchain_community.embeddings import FakeEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from src.config import (
     CHROMA_BASE_DIR,
     CHUNK_OVERLAP,
     CHUNK_SIZE,
-    MODEL_PROVIDER,
-    OLLAMA_BASE_URL,
-    OLLAMA_EMBED_MODEL,
-    OPENAI_API_KEY,
-    OPENAI_EMBED_MODEL,
     SUPPORTED_EXTENSIONS,
 )
-
-# اختيار embedding حسب المزود
-if MODEL_PROVIDER == "openai":
-    from langchain_openai import OpenAIEmbeddings
-else:
-    from langchain_ollama import OllamaEmbeddings
-
 
 DEFAULT_PERSIST_DIRECTORY = CHROMA_BASE_DIR
 
@@ -45,9 +34,6 @@ class IngestConfig:
     persist_directory: str = DEFAULT_PERSIST_DIRECTORY
 
 
-# =========================
-# Clone Repo
-# =========================
 def clone_repo_to_temp(repo_url: str) -> Tuple[Path, tempfile.TemporaryDirectory]:
     if not repo_url or not isinstance(repo_url, str):
         raise IngestionError("repo_url must be a non-empty string.")
@@ -67,9 +53,6 @@ def clone_repo_to_temp(repo_url: str) -> Tuple[Path, tempfile.TemporaryDirectory
     return repo_path, tmp
 
 
-# =========================
-# Load Files
-# =========================
 def load_repo_documents(repo_path: Path) -> List[Document]:
     if not repo_path.exists():
         raise IngestionError(f"Repository path does not exist: {repo_path}")
@@ -102,16 +85,12 @@ def load_repo_documents(repo_path: Path) -> List[Document]:
     return documents
 
 
-# =========================
-# Split Documents
-# =========================
 def split_documents(
     documents: Sequence[Document],
     *,
     chunk_size: int = CHUNK_SIZE,
     chunk_overlap: int = CHUNK_OVERLAP,
 ) -> List[Document]:
-
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
@@ -123,34 +102,15 @@ def split_documents(
         raise IngestionError(f"Failed while splitting documents: {e}") from e
 
 
-# =========================
-# Build Embeddings
-# =========================
 def _build_embeddings():
-    if MODEL_PROVIDER == "openai":
-        if not OPENAI_API_KEY:
-            raise IngestionError("OPENAI_API_KEY is missing.")
-
-        return OpenAIEmbeddings(
-            model=OPENAI_EMBED_MODEL,
-            api_key=OPENAI_API_KEY,
-        )
-
-    return OllamaEmbeddings(
-        model=OLLAMA_EMBED_MODEL,
-        base_url=OLLAMA_BASE_URL,
-    )
+    return FakeEmbeddings(size=1536)
 
 
-# =========================
-# Create Vector DB
-# =========================
 def embed_and_persist(
     chunks: Sequence[Document],
     *,
     persist_directory: str = DEFAULT_PERSIST_DIRECTORY,
 ) -> int:
-
     if not chunks:
         raise IngestionError("No chunks to embed.")
 
@@ -172,9 +132,6 @@ def embed_and_persist(
     return len(chunks)
 
 
-# =========================
-# MAIN FUNCTION (المهم 🔥)
-# =========================
 def ingest_repo(repo_url: str, config: Optional[IngestConfig] = None) -> str:
     cfg = config or IngestConfig()
     tmp_handle: Optional[tempfile.TemporaryDirectory] = None
