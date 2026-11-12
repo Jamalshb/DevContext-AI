@@ -41,4 +41,4 @@ Thumbs.db
 # Vector DB / Chroma
 # =========================
 chroma_db/
-data/chroma/
+data/chroma/data/
